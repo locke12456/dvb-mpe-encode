@@ -75,7 +75,7 @@ int tun_open(char *dev)
     return fd;
 
 }
-
+FILE *ts = 0;  
 void send_mpe(int fd, unsigned char *buf, size_t len)
 {
     unsigned char *mpe_header = buf;
@@ -107,10 +107,12 @@ void send_mpe(int fd, unsigned char *buf, size_t len)
     memcpy(&buf[len], &crc, 4);
     len += 4;
     write(fd, buf, len);
+    fwrite(buf, 1, len, ts);
     if (stuff) {
         unsigned long stuff_count = 184 - (len % 184) - 1; /* one less for TS packet pointer */
         if (stuff_count > 0) {
             write(fd, padding, stuff_count);
+			fwrite(padding, 1, stuff_count, ts);
         }
     }
 }
@@ -137,6 +139,7 @@ void exit_program(int sig)
     sprintf(s, "ifdown %s", ip_device);
     system(s);
     close(tun_fd);
+    fclose(ts);
     exit(0);
 }
 
@@ -169,6 +172,7 @@ int main(int argc, char **argv)
       sprintf(s, "ifup %s", ip_device);
       system(s);
     }
+    ts = fopen("test.ts", "a");  
     while (1) {
         unsigned char buf[4100];
         unsigned char *mpe_header = buf;
